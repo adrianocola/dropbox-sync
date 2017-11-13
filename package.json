@@ -1,0 +1,25 @@
+{
+  "name": "dropbox-sync",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/adrianocola/dropbox-sync.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/adrianocola/dropbox-sync/issues"
+  },
+  "homepage": "https://github.com/adrianocola/dropbox-sync#readme",
+  "dependencies": {
+    "async": "^2.6.0",
+    "dropbox": "^2.5.12",
+    "lodash": "^4.17.4",
+    "node-watch": "^0.5.5"
+  }
+}
