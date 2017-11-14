@@ -69,6 +69,7 @@ const deleteFile = (name, cb) => {
 };
 
 const fullSync = (cb) => {
+    cb = cb || function(){};
     console.log('Full sync started');
     async.series([getRemoteFilesList, getLocalFilesList], (err, results) => {
         if(err) return console.error(err);
@@ -111,8 +112,7 @@ const fullSync = (cb) => {
     });
 };
 
-
-fullSync(() => {
+const watchForChanges = () => {
     console.log('Watching for changes in: ' + fullPath);
 
     const onError = (err) => {
@@ -129,9 +129,10 @@ fullSync(() => {
             deleteFile(name, onError);
         }
     });
-});
+};
 
-
-
-
-
+// if running with "node index.js --watch", also watch directory for changes
+async.series([
+    fullSync,
+    process.argv[2] === '--watch' ? watchForChanges : null,
+]);
