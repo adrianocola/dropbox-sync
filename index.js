@@ -134,5 +134,5 @@ const watchForChanges = () => {
 // if running with "node index.js --watch", also watch directory for changes
 async.series([
     fullSync,
-    process.argv[2] === '--watch' ? watchForChanges : null,
+    process.argv[2] === '--watch' ? watchForChanges : function(){},
 ]);
