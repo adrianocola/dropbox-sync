@@ -35,37 +35,52 @@ const getRemoteFilesList = (cb) => {
 };
 
 const getLocalFilesList = (cb) => {
+    const results = [];
     fs.readdir(fullPath, (err, data) => {
         if(err) return cb(err);
-        async.map(data, (name, cb) => {
-            fs.stat(fullPath + name, (err, data) => {
+        async.each(data, (name, cb) => {
+            fs.stat(fullPath + name, (err, stats) => {
                 if(err) return cb(err);
-                cb(null, {name: name, size: data.size, modified: data.mtime});
+                if(stats.isFile() && name !== '.DS_Store'){
+                    results.push(name);
+                }
+                cb();
             });
-        }, cb);
-
+        }, (err) => {
+            cb(err, results);
+        });
     });
 };
 
 const updateFile = (name, cb) => {
     fs.readFile(fullPath + name, (err, data) => {
         if (err) return cb(err);
-        dbx.filesUpload({path: '/' + name, contents: data})
+        console.log('UPDATING: ' + name);
+        dbx.filesUpload({path: '/' + name, contents: data, mode: {'.tag': 'overwrite'}})
             .then(function(response) {
                 console.log(`Dropbox updated ${name}`);
                 cb();
             })
-            .catch(cb);
+            .catch((err) => {
+                console.log(`Dropbox updated error for file ${name}:`);
+                console.log(err);
+                cb(err);
+            });
     });
 };
 
 const deleteFile = (name, cb) => {
+    console.log('REMOVING: ' + name);
     dbx.filesDelete({path: '/' + name})
         .then(function(response) {
             console.log(`Dropbox removed ${name}`);
             cb();
         })
-        .catch(cb);
+        .catch((err) => {
+            console.log(`Dropbox removed error for file ${name}:`);
+            console.log(err);
+            cb(err);
+        });
 };
 
 const fullSync = (cb) => {
@@ -77,18 +92,16 @@ const fullSync = (cb) => {
         const localFiles = results[1];
 
         const serverMap = _.keyBy(serverFiles, 'name');
-        const localMap = _.keyBy(localFiles, 'name');
 
         async.series([(cb) => {
-            async.eachOf(localMap, (localFile, name, cb) => {
-                if(name === '.DS_Store') return cb();
+            async.eachSeries(localFiles, (name, cb) => {
                 const serverFile = serverMap[name];
                 if(!serverFile){
                     updateFile(name, cb);
                 }else{
                     serverFile.checked = true;
                     DropboxHasher(fullPath + name, (err, hash) => {
-                        if (err) cb(err);
+                        if (err) return cb(err);
                         if(serverFile.content_hash !== hash){
                             updateFile(name, cb);
                         }else{
@@ -106,7 +119,11 @@ const fullSync = (cb) => {
                 }
             }, cb);
         }], (err) => {
-            console.log('Full sync finished');
+            if(err){
+                console.log('Full sync finished with errors');
+            }else{
+                console.log('Full sync finished');
+            }
             cb(err);
         });
     });
@@ -134,5 +151,5 @@ const watchForChanges = () => {
 // if running with "node index.js --watch", also watch directory for changes
 async.series([
     fullSync,
-    process.argv[2] === '--watch' ? watchForChanges : function(){},
+    process.argv[2] === '--watch' ? watchForChanges : (cb) => cb(),
 ]);
